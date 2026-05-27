@@ -16,7 +16,7 @@ function AdminPanelInner() {
   const secret = searchParams.get('secret');
   const [authorized, setAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
-  const [tab, setTab] = useState<'subreddits' | 'vendors' | 'posts'>('subreddits');
+  const [tab, setTab] = useState<'subreddits' | 'vendors' | 'posts' | 'settings'>('subreddits');
 
   useEffect(() => {
     if (secret === process.env.NEXT_PUBLIC_ADMIN_SECRET) {
@@ -46,7 +46,7 @@ function AdminPanelInner() {
       <h1 className="text-xl font-bold mb-6">Admin Panel</h1>
 
       <div className="flex gap-1 mb-6">
-        {(['subreddits', 'vendors', 'posts'] as const).map((t) => (
+        {(['subreddits', 'vendors', 'posts', 'settings'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -64,6 +64,7 @@ function AdminPanelInner() {
       {tab === 'subreddits' && <SubredditManager />}
       {tab === 'vendors' && <VendorManager />}
       {tab === 'posts' && <RecentPosts />}
+      {tab === 'settings' && <SettingsPanel />}
     </div>
   );
 }
@@ -274,6 +275,63 @@ function RecentPosts() {
         </div>
       ))}
       {posts.length === 0 && <p className="text-center py-10 text-[var(--color-muted)]">No posts ingested yet.</p>}
+    </div>
+  );
+}
+
+function SettingsPanel() {
+  const [requireCode, setRequireCode] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.from('settings').select('value').eq('key', 'require_tracking_code').single().then(({ data }) => {
+      if (data) {
+        const val = (data as { value: unknown }).value;
+        setRequireCode(val === true || val === 'true');
+      } else {
+        setRequireCode(true);
+      }
+    });
+  }, []);
+
+  const toggle = async () => {
+    if (requireCode === null) return;
+    const newVal = !requireCode;
+    setSaving(true);
+    await supabase.from('settings').upsert({ key: 'require_tracking_code', value: newVal }, { onConflict: 'key' });
+    setRequireCode(newVal);
+    setSaving(false);
+  };
+
+  if (requireCode === null) {
+    return <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--foreground)] mx-auto mt-10" />;
+  }
+
+  return (
+    <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
+      <h2 className="text-sm font-semibold">Polling Settings</h2>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">Require Tracking Code</p>
+          <p className="text-xs text-[var(--color-muted)] mt-0.5">
+            {requireCode
+              ? 'Only ingest posts containing TRK- codes. Vendors must include their code in posts.'
+              : 'Ingest ALL posts from monitored subreddits. No TRK code required.'}
+          </p>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={saving}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+            requireCode ? 'bg-[var(--color-verified)]' : 'bg-[var(--color-muted)]'
+          }`}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            requireCode ? 'translate-x-6' : 'translate-x-1'
+          }`} />
+        </button>
+      </div>
     </div>
   );
 }

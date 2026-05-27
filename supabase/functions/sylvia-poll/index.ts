@@ -110,6 +110,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const { data: setting } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "require_tracking_code")
+      .single();
+
+    const requireTrackingCode = setting ? (setting.value === true || setting.value === "true") : true;
+
     let totalInserted = 0;
     const errors: Array<{ subreddit: string; error: string }> = [];
 
@@ -156,48 +164,58 @@ Deno.serve(async (req: Request) => {
           const fullText = [post.title, post.selftext].filter(Boolean).join(" ");
           const trackingCodes = extractTrackingCodes(fullText);
 
-          if (trackingCodes.length === 0) continue;
+          if (requireTrackingCode && trackingCodes.length === 0) continue;
 
-          for (const trackingCode of trackingCodes) {
+          const upsertPost = async (vendorId: string | null) => {
+            const images = extractImages(post);
+            const thumbnail = normalizeImageUrl(post.thumbnail ?? images[0] ?? null);
+            const extractedPrice = extractPrice(fullText);
+            const postUrl = post.permalink
+              ? `https://reddit.com${post.permalink}`
+              : post.url_overridden_by_dest || post.url || null;
+            const createdUtc = post.created_utc
+              ? new Date(post.created_utc * 1000).toISOString()
+              : null;
+
+            const { error: upsertError } = await supabase.from("posts").upsert(
+              {
+                vendor_id: vendorId,
+                reddit_post_id: post.id,
+                title: post.title,
+                subreddit: config.subreddit,
+                author: post.author,
+                post_url: postUrl,
+                body_snippet: post.selftext?.substring(0, 500) ?? null,
+                body_full: post.selftext ?? null,
+                images,
+                thumbnail,
+                extracted_price: extractedPrice,
+                reddit_score: post.score ?? null,
+                created_utc: createdUtc,
+              },
+              { onConflict: "reddit_post_id" }
+            );
+
+            if (!upsertError) totalInserted++;
+          };
+
+          if (trackingCodes.length > 0) {
+            for (const trackingCode of trackingCodes) {
+              try {
+                const { data: vendor } = await supabase
+                  .from("vendors")
+                  .select("id")
+                  .eq("tracking_code", trackingCode)
+                  .single();
+
+                await upsertPost(vendor?.id ?? null);
+              } catch (err) {
+                console.error(`Error processing post ${post.id}:`, err);
+              }
+            }
+          } else {
             try {
-              const { data: vendor } = await supabase
-                .from("vendors")
-                .select("id")
-                .eq("tracking_code", trackingCode)
-                .single();
-
-              const vendorId = vendor?.id ?? null;
-
-              const images = extractImages(post);
-              const thumbnail = normalizeImageUrl(post.thumbnail ?? images[0] ?? null);
-              const extractedPrice = extractPrice(fullText);
-              const postUrl = post.permalink
-                ? `https://reddit.com${post.permalink}`
-                : post.url_overridden_by_dest || post.url || null;
-              const createdUtc = post.created_utc
-                ? new Date(post.created_utc * 1000).toISOString()
-                : null;
-
-              const { error: upsertError } = await supabase.from("posts").upsert(
-                {
-                  vendor_id: vendorId,
-                  reddit_post_id: post.id,
-                  title: post.title,
-                  subreddit: config.subreddit,
-                  author: post.author,
-                  post_url: postUrl,
-                  body_snippet: post.selftext?.substring(0, 500) ?? null,
-                  body_full: post.selftext ?? null,
-                  images,
-                  thumbnail,
-                  extracted_price: extractedPrice,
-                  reddit_score: post.score ?? null,
-                  created_utc: createdUtc,
-                },
-                { onConflict: "reddit_post_id" }
-              );
-
-              if (!upsertError) totalInserted++;
+              await upsertPost(null);
             } catch (err) {
               console.error(`Error processing post ${post.id}:`, err);
             }
