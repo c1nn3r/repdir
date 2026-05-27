@@ -38,14 +38,14 @@ function VendorProfile() {
     const { data: vendorData } = await supabase
       .from('vendors')
       .select('*')
-      .eq('trk_code', code)
+      .eq('tracking_code', code)
       .single();
 
     if (vendorData) {
       setVendor(vendorData as Vendor);
 
       const [{ data: postsData }, { data: reviewsData }] = await Promise.all([
-        supabase.from('posts').select('*').eq('vendor_trk', code).order('created_at', { ascending: false }).limit(50),
+        supabase.from('posts').select('*').or(`vendor_trk.eq.${code},vendor_id.eq.${(vendorData as Vendor).id}`).order('created_utc', { ascending: false }).limit(50),
         supabase.from('reviews').select('*').eq('vendor_trk', code).order('created_at', { ascending: false }).limit(50),
       ]);
 
@@ -82,6 +82,10 @@ function VendorProfile() {
     );
   }
 
+  const contacts = vendor.other_contacts
+    ? Object.entries(vendor.other_contacts).map(([k, v]) => `${k}: ${v}`).join(', ')
+    : '';
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <Link href="/" className="text-xs text-[var(--color-muted)] hover:underline mb-4 inline-block">
@@ -97,20 +101,20 @@ function VendorProfile() {
               {vendor.is_verified && <span className="text-[var(--color-verified)] font-bold text-sm" title="Verified">✓ Verified</span>}
             </div>
             <div className="flex items-center gap-2 flex-wrap text-xs text-[var(--color-muted)] mb-3">
-              <span className="font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">TRK:{vendor.trk_code}</span>
+              <span className="font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">TRK:{vendor.tracking_code}</span>
               {vendor.subcategory && <span className="px-2 py-0.5 bg-[var(--color-border)] rounded">{vendor.subcategory}</span>}
-              <span className="text-[var(--color-featured)]">{'★'.repeat(Math.round(vendor.star_rating))} {vendor.star_rating.toFixed(1)}</span>
-              <span>▲{vendor.vote_score}</span>
-              <span>{vendor.review_count} reviews</span>
+              <span className="text-[var(--color-featured)]">{'★'.repeat(Math.round(vendor.star_rating || 0))} {(vendor.star_rating || 0).toFixed(1)}</span>
+              <span>▲{vendor.vote_score || 0}</span>
+              <span>{vendor.review_count || 0} reviews</span>
             </div>
             <div className="flex flex-wrap gap-3 text-xs mb-3">
               {vendor.website && <a href={vendor.website} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] hover:underline">Website</a>}
               {vendor.telegram && <span className="text-[var(--color-muted)]">Telegram: {vendor.telegram}</span>}
-              {vendor.contacts && <span className="text-[var(--color-muted)]">Contact: {vendor.contacts}</span>}
+              {contacts && <span className="text-[var(--color-muted)]">Contact: {contacts}</span>}
             </div>
-            {vendor.description && <p className="text-sm text-[var(--color-muted)]">{vendor.description}</p>}
+            {vendor.bio && <p className="text-sm text-[var(--color-muted)]">{vendor.bio}</p>}
           </div>
-          <VoteButtons entityType="vendor" entityId={vendor.id} currentScore={vendor.vote_score} user={user} onVoteChange={() => fetchData()} />
+          <VoteButtons entityType="vendor" entityId={vendor.id} currentScore={vendor.vote_score || 0} user={user} onVoteChange={() => fetchData()} />
         </div>
       </div>
 
@@ -126,14 +130,14 @@ function VendorProfile() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {posts.map((post) => (
-                <Link key={post.id} href={`/p?id=${post.id}`} className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg overflow-hidden hover:border-[var(--color-muted)] transition-colors group">
-                  {post.thumbnail && post.thumbnail.startsWith('http') && (
-                    <img src={post.thumbnail} alt="" className="w-full h-40 object-cover bg-[var(--color-border)]" loading="lazy" />
+                <Link key={post.id} href={`/p/?id=${post.id}`} className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg overflow-hidden hover:border-[var(--color-muted)] transition-colors group">
+                  {(post.images?.[0] || post.thumbnail) && (post.images?.[0] || post.thumbnail || '').startsWith('http') && (
+                    <img src={post.images?.[0] || post.thumbnail} alt="" className="w-full h-40 object-cover bg-[var(--color-border)]" loading="lazy" />
                   )}
                   <div className="p-3">
                     <h3 className="text-sm font-medium group-hover:underline line-clamp-2">{post.title}</h3>
-                    {post.price && <p className="text-sm font-bold mt-1">{post.price}</p>}
-                    <p className="text-[10px] text-[var(--color-muted)] mt-1">r/{post.subreddit} · {timeAgo(post.created_at)}</p>
+                    {post.extracted_price && <p className="text-sm font-bold mt-1">{post.extracted_price}</p>}
+                    <p className="text-[10px] text-[var(--color-muted)] mt-1">r/{post.subreddit} · {timeAgo(post.created_utc)}</p>
                   </div>
                 </Link>
               ))}
@@ -147,7 +151,7 @@ function VendorProfile() {
           {reviews.length > 0 && <ReviewList reviews={reviews} />}
           {user ? (
             showReviewForm ? (
-              <ReviewForm vendorTrk={vendor.trk_code} userId={user.id} email={user.email || ''} onSuccess={() => { setShowReviewForm(false); fetchData(); }} onCancel={() => setShowReviewForm(false)} />
+              <ReviewForm vendorTrk={vendor.tracking_code} userId={user.id} email={user.email || ''} onSuccess={() => { setShowReviewForm(false); fetchData(); }} onCancel={() => setShowReviewForm(false)} />
             ) : (
               <button onClick={() => setShowReviewForm(true)} className="mt-4 px-4 py-2 text-sm bg-[var(--foreground)] text-[var(--background)] rounded-md hover:opacity-90">Write a Review</button>
             )

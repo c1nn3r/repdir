@@ -19,15 +19,16 @@ export function LiveFeed() {
     let query = supabase
       .from('posts')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('created_utc', { ascending: false })
       .limit(100);
 
     if (activeCategory) {
       query = query.eq('subreddit', activeCategory);
     }
 
-    const { data } = await query;
-    if (data) setPosts(data);
+    const { data, error } = await query;
+    if (error) console.error('LiveFeed posts error:', error);
+    if (data) setPosts(data as Post[]);
     setLoading(false);
   }, [activeCategory]);
 
@@ -37,11 +38,11 @@ export function LiveFeed() {
 
   useEffect(() => {
     supabase
-      .from('subreddits')
+      .from('subreddits_config')
       .select('name')
       .eq('is_active', true)
       .then(({ data }) => {
-        if (data) setCategories(data.map((s) => s.name));
+        if (data) setCategories(data.map((s: { name: string }) => s.name));
       });
   }, []);
 

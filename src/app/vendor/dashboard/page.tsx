@@ -19,7 +19,6 @@ function VendorDashboard() {
   const { user } = useAuth();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [postCount, setPostCount] = useState(0);
-  const [voteScore, setVoteScore] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -34,16 +33,15 @@ function VendorDashboard() {
       .single()
       .then(({ data }) => {
         if (data) {
-          setVendor(data as Vendor);
-          const trk = (data as Vendor).trk_code;
+          const v = data as Vendor;
+          setVendor(v);
 
           Promise.all([
-            supabase.from('posts').select('*', { count: 'exact', head: true }).eq('vendor_trk', trk),
-            supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('vendor_trk', trk),
+            supabase.from('posts').select('*', { count: 'exact', head: true }).or(`vendor_trk.eq.${v.tracking_code},vendor_id.eq.${v.id}`),
+            supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('vendor_trk', v.tracking_code),
           ]).then(([postsRes, reviewsRes]) => {
             setPostCount(postsRes.count || 0);
             setReviewCount(reviewsRes.count || 0);
-            setVoteScore((data as Vendor).vote_score || 0);
           });
         }
         setLoading(false);
@@ -63,9 +61,7 @@ function VendorDashboard() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <p className="text-[var(--color-muted)] mb-4">No vendor profile found for this account.</p>
-          <Link href="/vendor/signup" className="text-[var(--color-accent)] hover:underline text-sm">
-            Create a vendor profile
-          </Link>
+          <Link href="/vendor/signup/" className="text-[var(--color-accent)] hover:underline text-sm">Create a vendor profile</Link>
         </div>
       </div>
     );
@@ -76,13 +72,9 @@ function VendorDashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-xl font-bold">{vendor.display_name}</h1>
-          <span className="text-xs font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">
-            {vendor.trk_code}
-          </span>
+          <span className="text-xs font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">{vendor.tracking_code}</span>
         </div>
-        <Link href="/" className="text-xs text-[var(--color-muted)] hover:underline">
-          Back to directory
-        </Link>
+        <Link href="/" className="text-xs text-[var(--color-muted)] hover:underline">Back to directory</Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -91,7 +83,7 @@ function VendorDashboard() {
           <div className="text-xs text-[var(--color-muted)] mt-1">Posts Found</div>
         </div>
         <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold">{voteScore}</div>
+          <div className="text-2xl font-bold">{vendor.vote_score || 0}</div>
           <div className="text-xs text-[var(--color-muted)] mt-1">Vote Score</div>
         </div>
         <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-4 text-center">
@@ -109,9 +101,7 @@ function VendorDashboard() {
           </div>
           <div className="flex justify-between">
             <dt className="text-[var(--color-muted)]">Rating</dt>
-            <dd className="text-[var(--color-featured)]">
-              {'★'.repeat(Math.round(vendor.star_rating))} {vendor.star_rating.toFixed(1)}
-            </dd>
+            <dd className="text-[var(--color-featured)]">{'★'.repeat(Math.round(vendor.star_rating || 0))} {(vendor.star_rating || 0).toFixed(1)}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-[var(--color-muted)]">Verified</dt>

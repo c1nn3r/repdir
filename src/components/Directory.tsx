@@ -15,8 +15,6 @@ export function Directory() {
   const [query, setQuery] = useState('');
   const [subcategories, setSubcategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(10000);
   const [minRating, setMinRating] = useState(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sort, setSort] = useState('featured');
@@ -62,7 +60,8 @@ export function Directory() {
         vendorQuery = vendorQuery.eq('is_verified', true);
       }
 
-      const { data: vendorResults } = await vendorQuery;
+      const { data: vendorResults, error } = await vendorQuery;
+      if (error) console.error('Directory vendors error:', error);
       setVendors((vendorResults as Vendor[]) || []);
       setPosts([]);
     }
@@ -86,7 +85,8 @@ export function Directory() {
     supabase
       .from('vendors')
       .select('subcategory')
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('Subcategories error:', error); return; }
         if (data) {
           const uniq = [...new Set((data as { subcategory: string }[]).map((v) => v.subcategory).filter(Boolean))];
           setSubcategories(uniq.sort());
@@ -103,9 +103,9 @@ export function Directory() {
           subcategories={subcategories}
           selectedSubcategories={selectedSubcategories}
           onSubcategoriesChange={setSelectedSubcategories}
-          minPrice={minPrice}
-          maxPrice={maxPrice}
-          onPriceChange={(min, max) => { setMinPrice(min); setMaxPrice(max); }}
+          minPrice={0}
+          maxPrice={0}
+          onPriceChange={() => {}}
           minRating={minRating}
           onRatingChange={setMinRating}
           verifiedOnly={verifiedOnly}

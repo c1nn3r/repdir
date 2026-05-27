@@ -10,7 +10,7 @@ interface VendorCardProps {
 export function VendorCard({ vendor }: VendorCardProps) {
   return (
     <Link
-      href={`/v?code=${vendor.trk_code}`}
+      href={`/v/?code=${vendor.tracking_code}`}
       className={`bg-[var(--color-card)] border rounded-lg p-4 hover:shadow-sm transition-all group ${
         vendor.is_featured
           ? 'border-[var(--color-featured)] ring-1 ring-[var(--color-featured)]/20'
@@ -44,7 +44,7 @@ export function VendorCard({ vendor }: VendorCardProps) {
           </div>
           <div className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
             <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono bg-neutral-100 dark:bg-neutral-800 rounded">
-              TRK:{vendor.trk_code}
+              TRK:{vendor.tracking_code}
             </span>
             {vendor.subcategory && (
               <span className="px-1.5 py-0.5 text-[10px] bg-[var(--color-border)] rounded">
@@ -54,11 +54,11 @@ export function VendorCard({ vendor }: VendorCardProps) {
           </div>
           <div className="flex items-center gap-3 mt-2 text-xs text-[var(--color-muted)]">
             <span className="text-[var(--color-featured)]">
-              {'★'.repeat(Math.round(vendor.star_rating))}{' '}
-              {vendor.star_rating.toFixed(1)}
+              {'★'.repeat(Math.round(vendor.star_rating || 0))}{' '}
+              {(vendor.star_rating || 0).toFixed(1)}
             </span>
-            <span>{vendor.review_count} reviews</span>
-            {vendor.vote_score > 0 && (
+            <span>{vendor.review_count || 0} reviews</span>
+            {(vendor.vote_score || 0) > 0 && (
               <span className="text-[var(--color-accent)]">▲{vendor.vote_score}</span>
             )}
           </div>

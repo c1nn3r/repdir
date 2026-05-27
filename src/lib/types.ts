@@ -1,13 +1,16 @@
 export interface Vendor {
   id: string;
+  user_id: string | null;
+  tracking_code: string;
   display_name: string;
-  trk_code: string;
   category: string;
   subcategory: string;
-  description: string;
+  bio: string;
   website: string;
   telegram: string;
-  contacts: string;
+  other_contacts: Record<string, string> | null;
+  min_price: number;
+  max_price: number;
   star_rating: number;
   review_count: number;
   vote_score: number;
@@ -22,19 +25,22 @@ export interface Vendor {
 
 export interface Post {
   id: string;
-  reddit_id: string;
+  vendor_id: string | null;
+  reddit_post_id: string;
   title: string;
-  body: string;
   subreddit: string;
-  thumbnail: string;
-  url: string;
-  permalink: string;
   author: string;
-  image_urls: string[];
-  price: string;
-  vendor_trk: string;
-  created_at: string;
+  post_url: string;
+  body_snippet: string;
+  body_full: string;
+  images: string[] | null;
+  thumbnail: string;
+  extracted_price: string;
+  reddit_score: number;
+  created_utc: string;
   ingested_at: string;
+  permalink: string;
+  vendor_trk: string;
 }
 
 export interface Subreddit {
