@@ -34,10 +34,20 @@ export default function VendorSignupPage() {
       return;
     }
 
+    if (!data.user?.id) {
+      setError('Failed to create user account.');
+      setLoading(false);
+      return;
+    }
+
+    if (data.session) {
+      await supabase.auth.setSession(data.session);
+    }
+
     const { error: vendorErr } = await supabase.from('vendors').insert({
       display_name: displayName,
       tracking_code: trk,
-      user_id: data.user?.id,
+      user_id: data.user.id,
     });
 
     if (vendorErr) {
