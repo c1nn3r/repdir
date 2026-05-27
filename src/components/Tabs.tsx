@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { LiveFeed } from './LiveFeed';
 import { Directory } from './Directory';
+import { useAuth } from '@/lib/auth';
 
 export function Tabs() {
   const [active, setActive] = useState<'live' | 'directory'>('live');
+  const { user, loading, signOut } = useAuth();
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -17,7 +20,7 @@ export function Tabs() {
               Fashion Vendor Directory
             </span>
           </div>
-          <nav className="flex gap-1" role="tablist">
+          <nav className="flex gap-1 items-center" role="tablist">
             <button
               role="tab"
               aria-selected={active === 'live'}
@@ -42,12 +45,35 @@ export function Tabs() {
             >
               Directory
             </button>
-            <a
-              href="/vendor/signup"
-              className="px-4 py-2 text-sm font-medium rounded-md text-[var(--color-muted)] hover:text-[var(--foreground)] transition-colors"
-            >
-              Sign Up
-            </a>
+
+            {loading ? null : user ? (
+              <>
+                <span className="text-xs text-[var(--color-muted)] hidden sm:inline max-w-[120px] truncate">
+                  {user.email}
+                </span>
+                <button
+                  onClick={() => signOut()}
+                  className="px-4 py-2 text-sm font-medium rounded-md text-[var(--color-muted)] hover:text-[var(--foreground)] transition-colors"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login/"
+                  className="px-4 py-2 text-sm font-medium rounded-md text-[var(--color-muted)] hover:text-[var(--foreground)] transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/vendor/signup/"
+                  className="px-4 py-2 text-sm font-medium rounded-md bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 transition-opacity"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>

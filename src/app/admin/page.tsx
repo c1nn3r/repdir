@@ -72,7 +72,9 @@ function AdminPanelInner() {
 function SubredditManager() {
   const [subs, setSubs] = useState<SubredditRow[]>([]);
   const [newName, setNewName] = useState('');
+  const [bulkText, setBulkText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -89,6 +91,24 @@ function SubredditManager() {
     setNewName('');
     const { data } = await supabase.from('subreddits_config').select('*').order('subreddit');
     if (data) setSubs(data as SubredditRow[]);
+  };
+
+  const bulkAdd = async () => {
+    if (!bulkText.trim()) return;
+    setAdding(true);
+    const existing = new Set(subs.map((s) => s.subreddit.toLowerCase()));
+    const names = bulkText
+      .split(/[\n,]+/)
+      .map((s) => s.trim().replace(/^r\//, ''))
+      .filter((s) => s.length > 0 && !existing.has(s.toLowerCase()));
+
+    for (const name of names) {
+      await supabase.from('subreddits_config').insert({ subreddit: name, active: true });
+    }
+    setBulkText('');
+    const { data } = await supabase.from('subreddits_config').select('*').order('subreddit');
+    if (data) setSubs(data as SubredditRow[]);
+    setAdding(false);
   };
 
   const toggleSub = async (sub: SubredditRow) => {
@@ -117,6 +137,23 @@ function SubredditManager() {
           onKeyDown={(e) => e.key === 'Enter' && addSub()}
         />
         <button onClick={addSub} className="px-4 py-2 text-sm bg-[var(--foreground)] text-[var(--background)] rounded-md hover:opacity-90">Add</button>
+      </div>
+
+      <div className="space-y-2">
+        <textarea
+          value={bulkText}
+          onChange={(e) => setBulkText(e.target.value)}
+          placeholder="Paste multiple subreddits (comma or newline separated)&#10;e.g. fashionreps, designerreps, QualityReps"
+          rows={3}
+          className="w-full px-3 py-2 bg-[var(--color-card)] border border-[var(--color-border)] rounded-md text-sm focus:outline-none focus:border-[var(--foreground)] resize-none"
+        />
+        <button
+          onClick={bulkAdd}
+          disabled={adding || !bulkText.trim()}
+          className="px-4 py-2 text-xs bg-[var(--foreground)] text-[var(--background)] rounded-md hover:opacity-90 disabled:opacity-50"
+        >
+          {adding ? 'Adding...' : 'Bulk Add'}
+        </button>
       </div>
 
       <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg overflow-hidden">
@@ -281,17 +318,27 @@ function RecentPosts() {
 
 function SettingsPanel() {
   const [requireCode, setRequireCode] = useState<boolean | null>(null);
+  const [retentionDays, setRetentionDays] = useState<number>(7);
   const [saving, setSaving] = useState(false);
+  const [retentionInput, setRetentionInput] = useState('7');
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.from('settings').select('value').eq('key', 'require_tracking_code').single().then(({ data }) => {
+    supabase.from('settings').select('key,value').then(({ data }) => {
       if (data) {
-        const val = (data as { value: unknown }).value;
-        setRequireCode(val === true || val === 'true');
-      } else {
-        setRequireCode(true);
+        for (const row of data as { key: string; value: unknown }[]) {
+          if (row.key === 'require_tracking_code') {
+            const val = row.value;
+            setRequireCode(val === true || val === 'true');
+          }
+          if (row.key === 'post_retention_days') {
+            const val = typeof row.value === 'number' ? row.value : parseInt(String(row.value), 10);
+            setRetentionDays(val || 7);
+            setRetentionInput(String(val || 7));
+          }
+        }
       }
+      if (requireCode === null) setRequireCode(true);
     });
   }, []);
 
@@ -304,33 +351,69 @@ function SettingsPanel() {
     setSaving(false);
   };
 
+  const saveRetention = async () => {
+    const val = parseInt(retentionInput, 10);
+    if (isNaN(val) || val < 1) return;
+    setSaving(true);
+    await supabase.from('settings').upsert({ key: 'post_retention_days', value: val }, { onConflict: 'key' });
+    setRetentionDays(val);
+    setSaving(false);
+  };
+
   if (requireCode === null) {
     return <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--foreground)] mx-auto mt-10" />;
   }
 
   return (
-    <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
-      <h2 className="text-sm font-semibold">Polling Settings</h2>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">Require Tracking Code</p>
-          <p className="text-xs text-[var(--color-muted)] mt-0.5">
-            {requireCode
-              ? 'Only ingest posts containing TRK- codes. Vendors must include their code in posts.'
-              : 'Ingest ALL posts from monitored subreddits. No TRK code required.'}
-          </p>
+    <div className="space-y-4">
+      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
+        <h2 className="text-sm font-semibold">Polling Settings</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Require Tracking Code</p>
+            <p className="text-xs text-[var(--color-muted)] mt-0.5">
+              {requireCode
+                ? 'Only ingest posts containing TRK- codes.'
+                : 'Ingest ALL posts from monitored subreddits.'}
+            </p>
+          </div>
+          <button
+            onClick={toggle}
+            disabled={saving}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+              requireCode ? 'bg-[var(--color-verified)]' : 'bg-[var(--color-muted)]'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              requireCode ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
         </div>
-        <button
-          onClick={toggle}
-          disabled={saving}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
-            requireCode ? 'bg-[var(--color-verified)]' : 'bg-[var(--color-muted)]'
-          }`}
-        >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            requireCode ? 'translate-x-6' : 'translate-x-1'
-          }`} />
-        </button>
+      </div>
+
+      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-6 space-y-3">
+        <h2 className="text-sm font-semibold">Data Retention</h2>
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-[var(--color-muted)] mb-1">Post retention (days)</label>
+            <input
+              type="number"
+              min="1"
+              max="365"
+              value={retentionInput}
+              onChange={(e) => setRetentionInput(e.target.value)}
+              className="w-full h-10 px-3 bg-transparent border border-[var(--color-border)] rounded-md text-sm focus:outline-none focus:border-[var(--foreground)]"
+            />
+            <p className="text-xs text-[var(--color-muted)] mt-1">Posts older than this will be auto-deleted on each poll.</p>
+          </div>
+          <button
+            onClick={saveRetention}
+            disabled={saving}
+            className="px-4 py-2 text-sm bg-[var(--foreground)] text-[var(--background)] rounded-md hover:opacity-90 disabled:opacity-50 shrink-0"
+          >
+            Save
+          </button>
+        </div>
       </div>
     </div>
   );

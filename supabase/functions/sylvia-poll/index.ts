@@ -22,35 +22,44 @@ interface SylviaPost {
   title?: string;
   subreddit?: string;
   author?: string;
-  url?: string;
   permalink?: string;
   selftext?: string;
   score?: number;
   created_utc?: number;
   thumbnail?: string;
-  media_metadata?: Record<string, { s?: { u?: string }; p?: Array<{ u?: string }> }>;
+  url?: string;
   preview?: { images?: Array<{ source?: { url?: string } }> };
-  url_overridden_by_dest?: string;
+  media_metadata?: Record<string, { e?: string; s?: { u?: string }; p?: Array<{ u?: string }> }>;
+  gallery_data?: { items?: Array<{ media_id?: string }> };
+}
+
+interface SylviaResponse {
+  data?: { posts?: SylviaPost[] };
+  success?: boolean;
 }
 
 function extractImages(post: SylviaPost): string[] {
   const images: string[] = [];
-  if (Array.isArray(post.preview?.images)) {
+
+  if (post.preview?.images) {
     for (const img of post.preview.images) {
       const url = img.source?.url;
       if (url) images.push(url.replace(/&amp;/g, "&"));
     }
   }
+
   if (post.media_metadata) {
     for (const key of Object.keys(post.media_metadata)) {
       const meta = post.media_metadata[key];
-      const src = meta.s?.u || meta.p?.[0]?.u;
+      const src = meta.s?.u;
       if (src) images.push(src.replace(/&amp;/g, "&"));
     }
   }
+
   if (post.url && /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(post.url)) {
     images.push(post.url.replace(/&amp;/g, "&"));
   }
+
   return images;
 }
 
@@ -65,11 +74,38 @@ function extractTrackingCodes(text: string): string[] {
   return [...matches].map((m) => m[0]);
 }
 
-function normalizeImageUrl(url: string): string | null {
+function normalizeImageUrl(url: string | null): string | null {
   if (!url) return null;
   const decoded = url.replace(/&amp;/g, "&");
   if (decoded.startsWith("http://") || decoded.startsWith("https://")) return decoded;
   return null;
+}
+
+async function cleanupOldPosts(supabase: ReturnType<typeof createClient>) {
+  const retentionDays = 7;
+  try {
+    const { data: setting } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "post_retention_days")
+      .single();
+
+    if (setting) {
+      const val = typeof setting.value === "number"
+        ? setting.value
+        : parseInt(String(setting.value), 10);
+      if (val >= 1) {
+        const cutoff = new Date(Date.now() - val * 86400000).toISOString();
+        const { count } = await supabase
+          .from("posts")
+          .delete({ count: "exact" })
+          .lt("ingested_at", cutoff);
+        if (count) console.log(`TTL cleanup: deleted ${count} old posts (older than ${val} days)`);
+      }
+    }
+  } catch (err) {
+    console.error("TTL cleanup error:", err);
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -89,6 +125,8 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
+
+    await cleanupOldPosts(supabase);
 
     const { data: subreddits, error: configError } = await supabase
       .from("subreddits_config")
@@ -116,7 +154,9 @@ Deno.serve(async (req: Request) => {
       .eq("key", "require_tracking_code")
       .single();
 
-    const requireTrackingCode = setting ? (setting.value === true || setting.value === "true") : true;
+    const requireTrackingCode = setting
+      ? setting.value === true || setting.value === "true"
+      : true;
 
     let totalInserted = 0;
     const errors: Array<{ subreddit: string; error: string }> = [];
@@ -124,10 +164,10 @@ Deno.serve(async (req: Request) => {
     for (const config of subreddits as SubredditConfig[]) {
       try {
         const apiUrl =
-          `https://api.sylvia-api.com/v1/reddit/r/${config.subreddit}/new?limit=100&format=minimal`;
+          `https://api.sylvia-api.com/v1/reddit/r/${config.subreddit}/new?limit=100`;
 
         const response = await fetch(apiUrl, {
-          headers: { "x-api-key": SYLVIA_API_KEY },
+          headers: { "X-API-KEY": SYLVIA_API_KEY },
         });
 
         if (response.status === 429) {
@@ -154,7 +194,15 @@ Deno.serve(async (req: Request) => {
         let posts: SylviaPost[];
         try {
           const parsed = JSON.parse(body);
-          posts = Array.isArray(parsed) ? parsed : parsed.data?.children?.map((c: { data: SylviaPost }) => c.data) || [];
+          if (Array.isArray(parsed)) {
+            posts = parsed;
+          } else if (parsed.data?.posts) {
+            posts = parsed.data.posts;
+          } else if (parsed.data?.children) {
+            posts = parsed.data.children.map((c: { data: SylviaPost }) => c.data);
+          } else {
+            posts = [];
+          }
         } catch {
           console.error(`Failed to parse JSON for r/${config.subreddit}`);
           continue;
@@ -172,7 +220,7 @@ Deno.serve(async (req: Request) => {
             const extractedPrice = extractPrice(fullText);
             const postUrl = post.permalink
               ? `https://reddit.com${post.permalink}`
-              : post.url_overridden_by_dest || post.url || null;
+              : post.url || null;
             const createdUtc = post.created_utc
               ? new Date(post.created_utc * 1000).toISOString()
               : null;
@@ -181,9 +229,9 @@ Deno.serve(async (req: Request) => {
               {
                 vendor_id: vendorId,
                 reddit_post_id: post.id,
-                title: post.title,
+                title: post.title || "",
                 subreddit: config.subreddit,
-                author: post.author,
+                author: post.author || null,
                 post_url: postUrl,
                 body_snippet: post.selftext?.substring(0, 500) ?? null,
                 body_full: post.selftext ?? null,
