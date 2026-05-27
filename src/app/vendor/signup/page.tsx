@@ -34,24 +34,35 @@ export default function VendorSignupPage() {
       return;
     }
 
-    if (!data.user?.id) {
-      setError('Failed to create user account.');
+    const userId = data?.user?.id;
+    const session = data?.session;
+
+    if (!userId) {
+      setError('Sign up completed but no user ID returned. Check your email for a confirmation link.');
       setLoading(false);
       return;
     }
 
-    if (data.session) {
-      await supabase.auth.setSession(data.session);
+    if (!session) {
+      setError('Account created. Please check your email to confirm, then sign in to complete registration.');
+      setLoading(false);
+      return;
     }
 
-    const { error: vendorErr } = await supabase.from('vendors').insert({
-      display_name: displayName,
-      tracking_code: trk,
-      user_id: data.user.id,
+    await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
     });
 
-    if (vendorErr) {
-      setError(vendorErr.message);
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('create_vendor', {
+      p_display_name: displayName,
+      p_tracking_code: trk,
+    });
+
+    if (rpcErr) {
+      setError(rpcErr.message);
+    } else if (rpcData?.error) {
+      setError(rpcData.error);
     } else {
       setTrackingCode(trk);
     }
