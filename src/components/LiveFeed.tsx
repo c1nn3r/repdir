@@ -39,10 +39,10 @@ export function LiveFeed() {
   useEffect(() => {
     supabase
       .from('subreddits_config')
-      .select('name')
-      .eq('is_active', true)
+      .select('subreddit')
+      .eq('active', true)
       .then(({ data }) => {
-        if (data) setCategories(data.map((s: { name: string }) => s.name));
+        if (data) setCategories(data.map((s: { subreddit: string }) => s.subreddit));
       });
   }, []);
 

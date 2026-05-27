@@ -43,28 +43,26 @@ export interface Post {
   vendor_trk: string;
 }
 
-export interface Subreddit {
+export interface SubredditRow {
   id: string;
-  name: string;
-  is_active: boolean;
-  created_at: string;
+  subreddit: string;
+  active: boolean;
+  added_at: string;
 }
 
 export interface Review {
   id: string;
-  vendor_trk: string;
+  vendor_id: string;
   user_id: string;
-  email: string;
   rating: number;
-  text: string;
+  body: string;
   created_at: string;
 }
 
 export interface Vote {
   id: string;
-  entity_type: 'vendor' | 'post';
-  entity_id: string;
+  vendor_id: string;
   user_id: string;
-  direction: 'up' | 'down';
+  value: number;
   created_at: string;
 }

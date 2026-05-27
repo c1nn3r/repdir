@@ -1,6 +1,6 @@
 'use client';
 
-import { maskEmail, timeAgo } from '@/lib/utils';
+import { timeAgo } from '@/lib/utils';
 import type { Review } from '@/lib/types';
 
 interface ReviewListProps {
@@ -13,13 +13,13 @@ export function ReviewList({ reviews }: ReviewListProps) {
       {reviews.map((review) => (
         <div key={review.id} className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-[var(--color-muted)]">{maskEmail(review.email)}</span>
+            <span className="text-xs text-[var(--color-muted)]">{review.user_id.slice(0, 8)}...</span>
             <span className="text-[var(--color-featured)] text-xs">
               {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
             </span>
           </div>
-          {review.text && (
-            <p className="text-sm">{review.text}</p>
+          {review.body && (
+            <p className="text-sm">{review.body}</p>
           )}
           <p className="text-[10px] text-[var(--color-muted)] mt-1">{timeAgo(review.created_at)}</p>
         </div>

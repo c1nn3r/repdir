@@ -46,7 +46,7 @@ function VendorProfile() {
 
       const [{ data: postsData }, { data: reviewsData }] = await Promise.all([
         supabase.from('posts').select('*').or(`vendor_trk.eq.${code},vendor_id.eq.${(vendorData as Vendor).id}`).order('created_utc', { ascending: false }).limit(50),
-        supabase.from('reviews').select('*').eq('vendor_trk', code).order('created_at', { ascending: false }).limit(50),
+        supabase.from('reviews').select('*').eq('vendor_id', (vendorData as Vendor).id).order('created_at', { ascending: false }).limit(50),
       ]);
 
       setPosts((postsData as Post[]) || []);
@@ -114,7 +114,7 @@ function VendorProfile() {
             </div>
             {vendor.bio && <p className="text-sm text-[var(--color-muted)]">{vendor.bio}</p>}
           </div>
-          <VoteButtons entityType="vendor" entityId={vendor.id} currentScore={vendor.vote_score || 0} user={user} onVoteChange={() => fetchData()} />
+          <VoteButtons vendorId={vendor.id} currentScore={vendor.vote_score || 0} user={user} onVoteChange={() => fetchData()} />
         </div>
       </div>
 
@@ -151,7 +151,7 @@ function VendorProfile() {
           {reviews.length > 0 && <ReviewList reviews={reviews} />}
           {user ? (
             showReviewForm ? (
-              <ReviewForm vendorTrk={vendor.tracking_code} userId={user.id} email={user.email || ''} onSuccess={() => { setShowReviewForm(false); fetchData(); }} onCancel={() => setShowReviewForm(false)} />
+              <ReviewForm vendorId={vendor.id} userId={user.id} onSuccess={() => { setShowReviewForm(false); fetchData(); }} onCancel={() => setShowReviewForm(false)} />
             ) : (
               <button onClick={() => setShowReviewForm(true)} className="mt-4 px-4 py-2 text-sm bg-[var(--foreground)] text-[var(--background)] rounded-md hover:opacity-90">Write a Review</button>
             )

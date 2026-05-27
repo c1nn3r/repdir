@@ -7,8 +7,8 @@ import type { Vendor, Post } from '@/lib/types';
 
 interface SubredditRow {
   id: string;
-  name: string;
-  is_active: boolean;
+  subreddit: string;
+  active: boolean;
 }
 
 function AdminPanelInner() {
@@ -75,7 +75,7 @@ function SubredditManager() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.from('subreddits_config').select('*').order('name').then(({ data }) => {
+    supabase.from('subreddits_config').select('*').order('subreddit').then(({ data }) => {
       if (data) setSubs(data as SubredditRow[]);
       setLoading(false);
     });
@@ -84,15 +84,15 @@ function SubredditManager() {
   const addSub = async () => {
     if (!newName.trim()) return;
     const clean = newName.trim().replace(/^r\//, '');
-    await supabase.from('subreddits_config').insert({ name: clean, is_active: true });
+    await supabase.from('subreddits_config').insert({ subreddit: clean, active: true });
     setNewName('');
-    const { data } = await supabase.from('subreddits_config').select('*').order('name');
+    const { data } = await supabase.from('subreddits_config').select('*').order('subreddit');
     if (data) setSubs(data as SubredditRow[]);
   };
 
   const toggleSub = async (sub: SubredditRow) => {
-    await supabase.from('subreddits_config').update({ is_active: !sub.is_active }).eq('id', sub.id);
-    setSubs((prev) => prev.map((s) => (s.id === sub.id ? { ...s, is_active: !s.is_active } : s)));
+    await supabase.from('subreddits_config').update({ active: !sub.active }).eq('id', sub.id);
+    setSubs((prev) => prev.map((s) => (s.id === sub.id ? { ...s, active: !s.active } : s)));
   };
 
   const removeSub = async (id: string) => {
@@ -130,16 +130,16 @@ function SubredditManager() {
           <tbody>
             {subs.map((sub) => (
               <tr key={sub.id} className="border-b border-[var(--color-border)] last:border-0">
-                <td className="p-3">r/{sub.name}</td>
+                <td className="p-3">r/{sub.subreddit}</td>
                 <td className="p-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${sub.is_active ? 'bg-green-100 dark:bg-green-900 text-[var(--color-verified)]' : 'bg-neutral-100 dark:bg-neutral-800 text-[var(--color-muted)]'}`}>
-                    {sub.is_active ? 'Active' : 'Paused'}
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${sub.active ? 'bg-green-100 dark:bg-green-900 text-[var(--color-verified)]' : 'bg-neutral-100 dark:bg-neutral-800 text-[var(--color-muted)]'}`}>
+                    {sub.active ? 'Active' : 'Paused'}
                   </span>
                 </td>
                 <td className="p-3 text-right">
                   <div className="flex gap-1 justify-end">
                     <button onClick={() => toggleSub(sub)} className="px-3 py-1 text-xs border border-[var(--color-border)] rounded hover:bg-[var(--color-border)]">
-                      {sub.is_active ? 'Pause' : 'Activate'}
+                      {sub.active ? 'Pause' : 'Activate'}
                     </button>
                     <button onClick={() => removeSub(sub.id)} className="px-3 py-1 text-xs border border-red-300 dark:border-red-800 text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-950">Remove</button>
                   </div>

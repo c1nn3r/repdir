@@ -38,7 +38,7 @@ function VendorDashboard() {
 
           Promise.all([
             supabase.from('posts').select('*', { count: 'exact', head: true }).or(`vendor_trk.eq.${v.tracking_code},vendor_id.eq.${v.id}`),
-            supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('vendor_trk', v.tracking_code),
+            supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('vendor_id', v.id),
           ]).then(([postsRes, reviewsRes]) => {
             setPostCount(postsRes.count || 0);
             setReviewCount(reviewsRes.count || 0);

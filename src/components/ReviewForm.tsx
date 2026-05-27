@@ -4,16 +4,15 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 interface ReviewFormProps {
-  vendorTrk: string;
+  vendorId: string;
   userId: string;
-  email: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function ReviewForm({ vendorTrk, userId, email, onSuccess, onCancel }: ReviewFormProps) {
+export function ReviewForm({ vendorId, userId, onSuccess, onCancel }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
-  const [text, setText] = useState('');
+  const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const supabase = createClient();
@@ -27,7 +26,7 @@ export function ReviewForm({ vendorTrk, userId, email, onSuccess, onCancel }: Re
     const { data: existing } = await supabase
       .from('reviews')
       .select('id')
-      .eq('vendor_trk', vendorTrk)
+      .eq('vendor_id', vendorId)
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -38,11 +37,10 @@ export function ReviewForm({ vendorTrk, userId, email, onSuccess, onCancel }: Re
     }
 
     const { error: err } = await supabase.from('reviews').insert({
-      vendor_trk: vendorTrk,
+      vendor_id: vendorId,
       user_id: userId,
-      email,
       rating,
-      text,
+      body,
     });
 
     if (err) {
@@ -74,8 +72,8 @@ export function ReviewForm({ vendorTrk, userId, email, onSuccess, onCancel }: Re
       </div>
 
       <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
         placeholder="Share your experience..."
         rows={3}
         className="w-full px-3 py-2 bg-transparent border border-[var(--color-border)] rounded-md text-sm focus:outline-none focus:border-[var(--foreground)] resize-none"
