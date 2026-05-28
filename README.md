@@ -1,6 +1,6 @@
-# RepDIR — Fashion Vendor Directory
+# RepDIR — Replica Fashion Seller Directory
 
-RepDIR is a modern, open-source fashion vendor directory and live aggregator. It monitors community-driven fashion subreddits, extracts vendor mentions via tracking codes (e.g., `TRK-XXXXX`), and aggregates them into a searchable web interface with user reviews, ratings, and upvote/downvote metrics.
+RepDIR is a modern, open-source replica fashion seller directory and live aggregator. It is specifically designed to catalog, verify, and rate replica fashion sellers and agents by monitoring community-driven replica subreddits, extracting vendor mentions via tracking codes (e.g., `TRK-XXXXX`), and aggregating them into a searchable web interface with user reviews, ratings, and upvote/downvote metrics.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Next.js](https://img.shields.io/badge/Next.js-16.2-black?logo=next.js)](https://nextjs.org/)
@@ -11,7 +11,7 @@ RepDIR is a modern, open-source fashion vendor directory and live aggregator. It
 
 ## 🚀 How It Works & The Sylvia API Ingestion
 
-RepDIR relies on continuous background scanning of community subreddits (like `r/Streetwear`, `r/sneakers`, etc.) to find vendor mentions, price estimates, and product images.
+RepDIR relies on continuous background scanning of popular replica fashion subreddits (such as `r/FashionReps`, `r/DesignerReps`, `r/QualityReps`, and `r/sneakers`) to find seller mentions, price estimates, and product images.
 
 Rather than running heavy, fragile scraping scripts or navigating complex OAuth limitations with the standard Reddit API, RepDIR's ingestion engine is powered by **[sylvia-api.com](https://sylvia-api.com)**.
 
@@ -36,18 +36,18 @@ Rather than running heavy, fragile scraping scripts or navigating complex OAuth 
 - **Speed & Stability**: High-performance endpoints that ensure background syncs run without rate-limiting issues.
 - **Ease of Integration**: Eliminates the boilerplate required to parse media metadata, galleries, and pricing contexts.
 
-Interested in building community directories or search engines? Check out **[sylvia-api.com](https://sylvia-api.com)** for reliable, structured Reddit data streams.
+Interested in building replica directories, seller trackers, or search engines? Check out **[sylvia-api.com](https://sylvia-api.com)** for reliable, structured Reddit data streams.
 
 ---
 
 ## ✨ Features
 
-- **Live Aggregated Feed**: Real-time post listing monitored by the Deno polling worker.
-- **Searchable Directory**: Full-text fuzzy search (via Postgres `pg_trgm`) over vendors, categories, and descriptions.
-- **Interactive Ratings & Reviews**: User accounts can submit verified star ratings and reviews for listed vendors.
-- **Voting Mechanism**: Dynamic upvote/downvote scoring to rank vendor popularity.
-- **Vendor Dashboard**: Sign-up flow generating unique tracking codes (`TRK-XXXXX`) and showing post/vote counts.
-- **Admin Management**: Secure administration view to verify vendors, feature listings, and toggle ingestion filters.
+- **Live Aggregated Feed**: Real-time listing of post mentions monitored by the Deno polling worker.
+- **Searchable Seller Directory**: Full-text fuzzy search (via Postgres `pg_trgm`) over sellers, categories, and descriptions.
+- **Interactive Ratings & Reviews**: User accounts can submit verified star ratings and reviews for listed replica sellers.
+- **Voting Mechanism**: Dynamic upvote/downvote scoring to rank seller popularity.
+- **Replica Seller Dashboard**: Sign-up flow generating unique tracking codes (`TRK-XXXXX`) so replica sellers can easily track post mentions and upvote scores.
+- **Admin Management**: Secure administration view to verify sellers, feature listings, and toggle ingestion filters.
 
 ---
 
