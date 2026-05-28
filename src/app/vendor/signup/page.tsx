@@ -18,7 +18,7 @@ export default function VendorSignupPage() {
     setError('');
     setLoading(true);
 
-    const trk = 'TRK-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    const trk = 'TRK-' + Math.random().toString(36).slice(2, 7).toUpperCase();
 
     const { error: authErr, data } = await supabase.auth.signUp({
       email,
