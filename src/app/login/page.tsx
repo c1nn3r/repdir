@@ -41,12 +41,13 @@ function LoginForm() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
         router.push(redirect);
       }
     });
-  }, []);
+    return () => subscription.unsubscribe();
+  }, [router, redirect, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
