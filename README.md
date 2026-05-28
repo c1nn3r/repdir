@@ -63,7 +63,7 @@ Interested in building replica directories, seller trackers, or search engines? 
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/simplychiragk/repdir.git
+git clone https://github.com/c1nn3r/repdir.git
 cd repdir
 ```
 
