@@ -36,9 +36,14 @@ function LoginForm() {
         });
         return;
       }
+
+      const errorMsg = params.get('error_description') || params.get('error');
+      if (errorMsg) {
+        setError(errorMsg.replace(/\+/g, ' '));
+      }
     }
     setCallbackLoading(false);
-  }, []);
+  }, [router, redirect, supabase]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {

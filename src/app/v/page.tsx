@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -29,31 +29,51 @@ function VendorProfile() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'products' | 'reviews'>('products');
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchData = async () => {
     if (!code) { setLoading(false); return; }
     setLoading(true);
 
-    const { data: vendorData } = await supabase
-      .from('vendors')
-      .select('*')
-      .eq('tracking_code', code)
-      .single();
+    try {
+      const { data: vendorData } = await supabase
+        .from('vendors')
+        .select('*')
+        .eq('tracking_code', code)
+        .single();
 
-    if (vendorData) {
-      setVendor(vendorData as Vendor);
+      if (vendorData) {
+        // Fetch rankings view data for live up-to-date metrics
+        const { data: rankingData } = await supabase
+          .from('vendor_rankings')
+          .select('avg_rating, review_count, vote_score, rank_score, latest_thumbnail')
+          .eq('tracking_code', code)
+          .maybeSingle();
 
-      const [{ data: postsData }, { data: reviewsData }] = await Promise.all([
-        supabase.from('posts').select('*').or(`vendor_trk.eq.${code},vendor_id.eq.${(vendorData as Vendor).id}`).order('created_utc', { ascending: false }).limit(50),
-        supabase.from('reviews').select('*').eq('vendor_id', (vendorData as Vendor).id).order('created_at', { ascending: false }).limit(50),
-      ]);
+        const mergedVendor = {
+          ...vendorData,
+          star_rating: rankingData ? rankingData.avg_rating : 0,
+          review_count: rankingData ? rankingData.review_count : 0,
+          vote_score: rankingData ? rankingData.vote_score : 0,
+          latest_thumbnail: rankingData ? rankingData.latest_thumbnail : (vendorData.latest_thumbnail || ''),
+          rank_score: rankingData ? rankingData.rank_score : 0,
+        };
 
-      setPosts((postsData as Post[]) || []);
-      setReviews((reviewsData as Review[]) || []);
+        setVendor(mergedVendor as Vendor);
+
+        const [{ data: postsData }, { data: reviewsData }] = await Promise.all([
+          supabase.from('posts').select('*').or(`vendor_trk.eq.${code},vendor_id.eq.${(vendorData as Vendor).id}`).order('created_utc', { ascending: false }).limit(50),
+          supabase.from('reviews').select('*').eq('vendor_id', (vendorData as Vendor).id).order('created_at', { ascending: false }).limit(50),
+        ]);
+
+        setPosts((postsData as Post[]) || []);
+        setReviews((reviewsData as Review[]) || []);
+      }
+    } catch (error) {
+      console.error('Fetch vendor details error:', error);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, [code]);
