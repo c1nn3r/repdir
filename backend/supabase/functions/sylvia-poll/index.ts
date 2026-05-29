@@ -152,10 +152,20 @@ Deno.serve(async (req: Request) => {
         }
 
         for (const post of posts) {
+          if (post.selftext === "[removed]" || post.selftext === "[deleted]") {
+            try {
+              await supabase.from("posts").delete().eq("reddit_post_id", post.id);
+            } catch (err) {
+              console.error(`Error deleting removed post ${post.id}:`, err);
+            }
+            continue;
+          }
+
           const fullText = [post.title, post.selftext].filter(Boolean).join(" ");
           const trackingCodes = extractTrackingCodes(fullText);
 
           if (trackingCodes.length === 0) continue;
+
 
           for (const trackingCode of trackingCodes) {
             try {
@@ -168,8 +178,11 @@ Deno.serve(async (req: Request) => {
               const vendorId = vendor?.id ?? null;
 
               const images = extractImages(post);
-              const thumbnail = normalizeImageUrl(post.thumbnail ?? images[0] ?? null);
+              const normalizedThumbnail = normalizeImageUrl(post.thumbnail ?? null);
+              const normalizedFirstImage = normalizeImageUrl(images[0] ?? null);
+              const thumbnail = normalizedThumbnail || normalizedFirstImage || null;
               const extractedPrice = extractPrice(fullText);
+
               const postUrl = post.permalink
                 ? `https://reddit.com${post.permalink}`
                 : post.url_overridden_by_dest || post.url || null;

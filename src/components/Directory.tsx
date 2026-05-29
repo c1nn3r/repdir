@@ -39,8 +39,10 @@ export function Directory() {
           supabase
             .from('posts')
             .select('*')
+            .not('body_snippet', 'in', '("[removed]","[deleted]")')
             .textSearch('search_vector', q, { type: 'websearch', config: 'english' })
             .limit(50),
+
         ]);
 
         const rawVendors = (vendorResults as Vendor[]) || [];
@@ -59,7 +61,7 @@ export function Directory() {
               star_rating: r ? r.avg_rating : 0,
               review_count: r ? r.review_count : 0,
               vote_score: r ? r.vote_score : 0,
-              latest_thumbnail: r ? r.latest_thumbnail : v.latest_thumbnail,
+              latest_thumbnail: r?.latest_thumbnail || v.latest_thumbnail || '',
               rank_score: r ? r.rank_score : 0,
             };
           });
@@ -100,7 +102,7 @@ export function Directory() {
               star_rating: r ? r.avg_rating : 0,
               review_count: r ? r.review_count : 0,
               vote_score: r ? r.vote_score : 0,
-              latest_thumbnail: r ? r.latest_thumbnail : v.latest_thumbnail,
+              latest_thumbnail: r?.latest_thumbnail || v.latest_thumbnail || '',
               rank_score: r ? r.rank_score : 0,
             };
           });

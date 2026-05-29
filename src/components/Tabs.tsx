@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 
 export function Tabs() {
   const [active, setActive] = useState<'live' | 'directory'>('live');
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, isVendor, isAdmin, signOut } = useAuth();
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -48,6 +48,22 @@ export function Tabs() {
 
             {loading ? null : user ? (
               <>
+                {isVendor && (
+                  <Link
+                    href="/vendor/dashboard/"
+                    className="px-4 py-2 text-sm font-medium rounded-md text-[var(--color-muted)] hover:text-[var(--foreground)] transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link
+                    href="/admin/"
+                    className="px-4 py-2 text-sm font-medium rounded-md text-[var(--color-muted)] hover:text-[var(--foreground)] transition-colors"
+                  >
+                    Admin
+                  </Link>
+                )}
                 <span className="text-xs text-[var(--color-muted)] hidden sm:inline max-w-[120px] truncate">
                   {user.email}
                 </span>
@@ -58,6 +74,7 @@ export function Tabs() {
                   Logout
                 </button>
               </>
+
             ) : (
               <>
                 <Link

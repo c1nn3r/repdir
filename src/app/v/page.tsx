@@ -55,16 +55,18 @@ function VendorProfile() {
           star_rating: rankingData ? rankingData.avg_rating : 0,
           review_count: rankingData ? rankingData.review_count : 0,
           vote_score: rankingData ? rankingData.vote_score : 0,
-          latest_thumbnail: rankingData ? rankingData.latest_thumbnail : (vendorData.latest_thumbnail || ''),
+          latest_thumbnail: rankingData?.latest_thumbnail || vendorData.latest_thumbnail || '',
           rank_score: rankingData ? rankingData.rank_score : 0,
         };
+
 
         setVendor(mergedVendor as Vendor);
 
         const [{ data: postsData }, { data: reviewsData }] = await Promise.all([
-          supabase.from('posts').select('*').or(`vendor_trk.eq.${code},vendor_id.eq.${(vendorData as Vendor).id}`).order('created_utc', { ascending: false }).limit(50),
+          supabase.from('posts').select('*').or(`vendor_trk.eq.${code},vendor_id.eq.${(vendorData as Vendor).id}`).not('body_snippet', 'in', '("[removed]","[deleted]")').order('created_utc', { ascending: false }).limit(50),
           supabase.from('reviews').select('*').eq('vendor_id', (vendorData as Vendor).id).order('created_at', { ascending: false }).limit(50),
         ]);
+
 
         setPosts((postsData as Post[]) || []);
         setReviews((reviewsData as Review[]) || []);
