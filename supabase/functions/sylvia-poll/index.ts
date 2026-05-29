@@ -51,10 +51,11 @@ function extractImages(post: SylviaPost): string[] {
   if (post.media_metadata) {
     for (const key of Object.keys(post.media_metadata)) {
       const meta = post.media_metadata[key];
-      const src = meta.s?.u;
+      const src = meta.s?.u || meta.p?.[0]?.u;
       if (src) images.push(src.replace(/&amp;/g, "&"));
     }
   }
+
 
   if (post.url && /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(post.url)) {
     images.push(post.url.replace(/&amp;/g, "&"));
@@ -216,8 +217,11 @@ Deno.serve(async (req: Request) => {
 
           const upsertPost = async (vendorId: string | null) => {
             const images = extractImages(post);
-            const thumbnail = normalizeImageUrl(post.thumbnail ?? images[0] ?? null);
+            const normalizedThumbnail = normalizeImageUrl(post.thumbnail ?? null);
+            const normalizedFirstImage = normalizeImageUrl(images[0] ?? null);
+            const thumbnail = normalizedThumbnail || normalizedFirstImage || null;
             const extractedPrice = extractPrice(fullText);
+
             const postUrl = post.permalink
               ? `https://reddit.com${post.permalink}`
               : post.url || null;

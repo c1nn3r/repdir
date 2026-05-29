@@ -55,9 +55,10 @@ function VendorProfile() {
           star_rating: rankingData ? rankingData.avg_rating : 0,
           review_count: rankingData ? rankingData.review_count : 0,
           vote_score: rankingData ? rankingData.vote_score : 0,
-          latest_thumbnail: rankingData ? rankingData.latest_thumbnail : (vendorData.latest_thumbnail || ''),
+          latest_thumbnail: rankingData?.latest_thumbnail || vendorData.latest_thumbnail || '',
           rank_score: rankingData ? rankingData.rank_score : 0,
         };
+
 
         setVendor(mergedVendor as Vendor);
 

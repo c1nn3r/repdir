@@ -168,8 +168,11 @@ Deno.serve(async (req: Request) => {
               const vendorId = vendor?.id ?? null;
 
               const images = extractImages(post);
-              const thumbnail = normalizeImageUrl(post.thumbnail ?? images[0] ?? null);
+              const normalizedThumbnail = normalizeImageUrl(post.thumbnail ?? null);
+              const normalizedFirstImage = normalizeImageUrl(images[0] ?? null);
+              const thumbnail = normalizedThumbnail || normalizedFirstImage || null;
               const extractedPrice = extractPrice(fullText);
+
               const postUrl = post.permalink
                 ? `https://reddit.com${post.permalink}`
                 : post.url_overridden_by_dest || post.url || null;
