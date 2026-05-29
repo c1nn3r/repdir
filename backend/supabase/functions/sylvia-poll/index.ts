@@ -152,10 +152,20 @@ Deno.serve(async (req: Request) => {
         }
 
         for (const post of posts) {
+          if (post.selftext === "[removed]" || post.selftext === "[deleted]") {
+            try {
+              await supabase.from("posts").delete().eq("reddit_post_id", post.id);
+            } catch (err) {
+              console.error(`Error deleting removed post ${post.id}:`, err);
+            }
+            continue;
+          }
+
           const fullText = [post.title, post.selftext].filter(Boolean).join(" ");
           const trackingCodes = extractTrackingCodes(fullText);
 
           if (trackingCodes.length === 0) continue;
+
 
           for (const trackingCode of trackingCodes) {
             try {
