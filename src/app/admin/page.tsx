@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/auth';
 import type { Vendor, Post } from '@/lib/types';
 
 interface SubredditRow {
@@ -14,16 +15,20 @@ interface SubredditRow {
 function AdminPanelInner() {
   const searchParams = useSearchParams();
   const secret = searchParams.get('secret');
+  const { isAdmin, loading } = useAuth();
   const [authorized, setAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
   const [tab, setTab] = useState<'subreddits' | 'vendors' | 'posts' | 'settings'>('subreddits');
 
   useEffect(() => {
-    if (secret === process.env.NEXT_PUBLIC_ADMIN_SECRET) {
-      setAuthorized(true);
+    if (!loading) {
+      if (isAdmin || (secret && secret === process.env.NEXT_PUBLIC_ADMIN_SECRET)) {
+        setAuthorized(true);
+      }
+      setChecking(false);
     }
-    setChecking(false);
-  }, [secret]);
+  }, [isAdmin, loading, secret]);
+
 
   if (checking) {
     return (
