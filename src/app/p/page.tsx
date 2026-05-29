@@ -45,9 +45,10 @@ function ProductDetail() {
             ? `vendor_trk.eq.${p.vendor_trk}`
             : `vendor_id.eq.${p.vendor_id}`;
 
-          supabase.from('posts').select('*').or(filter).neq('id', postId).order('created_utc', { ascending: false }).limit(4).then(({ data: related }) => {
+          supabase.from('posts').select('*').or(filter).neq('id', postId).not('body_snippet', 'in', '("[removed]","[deleted]")').order('created_utc', { ascending: false }).limit(4).then(({ data: related }) => {
             if (related) setRelatedPosts(related as Post[]);
           });
+
         }
       }
       setLoading(false);

@@ -19,8 +19,10 @@ export function LiveFeed() {
     let query = supabase
       .from('posts')
       .select('*')
+      .not('body_snippet', 'in', '("[removed]","[deleted]")')
       .order('created_utc', { ascending: false })
       .limit(100);
+
 
     if (activeCategory) {
       query = query.eq('subreddit', activeCategory);

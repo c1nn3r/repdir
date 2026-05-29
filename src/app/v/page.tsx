@@ -62,9 +62,10 @@ function VendorProfile() {
         setVendor(mergedVendor as Vendor);
 
         const [{ data: postsData }, { data: reviewsData }] = await Promise.all([
-          supabase.from('posts').select('*').or(`vendor_trk.eq.${code},vendor_id.eq.${(vendorData as Vendor).id}`).order('created_utc', { ascending: false }).limit(50),
+          supabase.from('posts').select('*').or(`vendor_trk.eq.${code},vendor_id.eq.${(vendorData as Vendor).id}`).not('body_snippet', 'in', '("[removed]","[deleted]")').order('created_utc', { ascending: false }).limit(50),
           supabase.from('reviews').select('*').eq('vendor_id', (vendorData as Vendor).id).order('created_at', { ascending: false }).limit(50),
         ]);
+
 
         setPosts((postsData as Post[]) || []);
         setReviews((reviewsData as Review[]) || []);
