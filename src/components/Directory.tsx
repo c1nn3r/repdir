@@ -39,8 +39,10 @@ export function Directory() {
           supabase
             .from('posts')
             .select('*')
+            .not('body_snippet', 'in', '("[removed]","[deleted]")')
             .textSearch('search_vector', q, { type: 'websearch', config: 'english' })
             .limit(50),
+
         ]);
 
         const rawVendors = (vendorResults as Vendor[]) || [];
