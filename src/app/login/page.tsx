@@ -36,17 +36,23 @@ function LoginForm() {
         });
         return;
       }
+
+      const errorMsg = params.get('error_description') || params.get('error');
+      if (errorMsg) {
+        setError(errorMsg.replace(/\+/g, ' '));
+      }
     }
     setCallbackLoading(false);
-  }, []);
+  }, [router, redirect, supabase]);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
         router.push(redirect);
       }
     });
-  }, []);
+    return () => subscription.unsubscribe();
+  }, [router, redirect, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

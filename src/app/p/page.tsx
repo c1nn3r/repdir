@@ -72,7 +72,7 @@ function ProductDetail() {
 
       <article className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg overflow-hidden">
         {images.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <div className={`grid gap-1 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
             {images.map((url, i) => (
               <img key={i} src={url} alt="" className="w-full h-64 object-cover bg-[var(--color-border)]" loading="lazy" />
             ))}
