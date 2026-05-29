@@ -67,5 +67,10 @@ create policy "delete own votes"
 -- subreddits_config: service role only (no policies = blocked for anon/authenticated)
 alter table public.subreddits_config enable row level security;
 
--- admin_users: service role only (no policies = blocked for anon/authenticated)
+-- admin_users: enable row level security and allow users to check if they are admin
 alter table public.admin_users enable row level security;
+
+create policy "users select own admin status"
+  on public.admin_users for select
+  using (auth.uid() = user_id);
+
